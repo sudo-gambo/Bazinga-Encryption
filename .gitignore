@@ -1,0 +1,10 @@
+# Rust
+bazingaDlls/target/
+
+# C#
+bin/
+obj/
+
+# Misc
+*.user
+.vs/

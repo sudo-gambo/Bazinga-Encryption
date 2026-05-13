@@ -1,0 +1,213 @@
+﻿using System;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using Microsoft.Win32;
+
+namespace encryptionTool
+{
+    public partial class MainWindow : Window
+    {
+        [DllImport("bazingaDlls.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern int encrypt_folder(string folder, StringBuilder keyOut, int bufLen);
+
+        [DllImport("bazingaDlls.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern int decrypt_folder(string folder, string base64Key);
+
+        private bool _isDark = false;
+        private string _lastKey = "";
+
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        // ── Browse (encrypt page) ────────────────────────────────────────────
+        private void BrowseEncrypt_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = "Select Folder to Encrypt",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                EncryptPathInput.Text = dialog.FolderName;
+                EncryptStatus.Text = "FOLDER_READY";
+            }
+        }
+
+        // ── Browse (decrypt page) ────────────────────────────────────────────
+        private void BrowseDecrypt_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = "Select Folder to Decrypt",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                DecryptPathInput.Text = dialog.FolderName;
+                DecryptStatus.Text = "FOLDER_READY";
+            }
+        }
+
+        // ── Run Encryption ───────────────────────────────────────────────────
+        private void LockButton_Click(object sender, RoutedEventArgs e)
+        {
+            string path = EncryptPathInput.Text;
+            if (!System.IO.Directory.Exists(path))
+            {
+                EncryptStatus.Text = "INVALID_PATH";
+                return;
+            }
+
+            EncryptStatus.Text = "ENCRYPTING...";
+            LockButton.IsEnabled = false;
+
+            try
+            {
+                var keyBuf = new StringBuilder(512);
+                int result = encrypt_folder(path, keyBuf, keyBuf.Capacity);
+
+                if (result == 0)
+                {
+                    _lastKey = keyBuf.ToString();
+                    KeyOutputBox.Text = _lastKey;
+                    KeyOutputPanel.Visibility = Visibility.Visible;
+                    EncryptStatus.Text = "SUCCESS — save your key!";
+                }
+                else
+                {
+                    EncryptStatus.Text = $"ERR_CODE: {result}";
+                }
+            }
+            catch (Exception ex)
+            {
+                EncryptStatus.Text = "DLL_CRASH: " + ex.Message;
+            }
+            finally
+            {
+                LockButton.IsEnabled = true;
+            }
+        }
+
+        // ── Run Decryption ───────────────────────────────────────────────────
+        private void UnlockButton_Click(object sender, RoutedEventArgs e)
+        {
+            string path = DecryptPathInput.Text;
+            string key = DecryptKeyInput.Text.Trim();
+
+            if (!System.IO.Directory.Exists(path))
+            {
+                DecryptStatus.Text = "INVALID_PATH";
+                return;
+            }
+            if (string.IsNullOrEmpty(key))
+            {
+                DecryptStatus.Text = "NO_KEY_PROVIDED";
+                return;
+            }
+
+            DecryptStatus.Text = "DECRYPTING...";
+            UnlockButton.IsEnabled = false;
+
+            try
+            {
+                int result = decrypt_folder(path, key);
+                DecryptStatus.Text = result == 0 ? "SUCCESS" : $"ERR_CODE: {result}";
+            }
+            catch (Exception ex)
+            {
+                DecryptStatus.Text = "DLL_CRASH: " + ex.Message;
+            }
+            finally
+            {
+                UnlockButton.IsEnabled = true;
+            }
+        }
+
+        // ── Copy key to clipboard ────────────────────────────────────────────
+        private void CopyKey_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(KeyOutputBox.Text))
+            {
+                Clipboard.SetText(KeyOutputBox.Text);
+                EncryptStatus.Text = "KEY_COPIED";
+            }
+        }
+
+        // ── Paste key from clipboard ─────────────────────────────────────────
+        private void PasteKey_Click(object sender, RoutedEventArgs e)
+        {
+            if (Clipboard.ContainsText())
+                DecryptKeyInput.Text = Clipboard.GetText();
+        }
+
+        // ── Navigation ───────────────────────────────────────────────────────
+        private void ShowPage(UIElement page)
+        {
+            PageEncrypt.Visibility  = Visibility.Collapsed;
+            PageDecrypt.Visibility  = Visibility.Collapsed;
+            PageHistory.Visibility  = Visibility.Collapsed;
+            PageSettings.Visibility = Visibility.Collapsed;
+            PageAbout.Visibility    = Visibility.Collapsed;
+            page.Visibility         = Visibility.Visible;
+        }
+
+        private void Nav_Encrypt(object sender, RoutedEventArgs e)  { ShowPage(PageEncrypt);  TabEncrypt.IsChecked  = true; }
+        private void Nav_Decrypt(object sender, RoutedEventArgs e)  { ShowPage(PageDecrypt);  TabDecrypt.IsChecked  = true; }
+        private void Nav_History(object sender, RoutedEventArgs e)  { ShowPage(PageHistory);  TabHistory.IsChecked  = true; }
+        private void Nav_Settings(object sender, RoutedEventArgs e) { ShowPage(PageSettings); TabSettings.IsChecked = true; }
+        private void Nav_About(object sender, RoutedEventArgs e)    { ShowPage(PageAbout);    TabAbout.IsChecked    = true; }
+
+        // ── Theme ────────────────────────────────────────────────────────────
+        private void ThemeToggle_Click(object sender, RoutedEventArgs e) { _isDark = !_isDark; ApplyTheme(_isDark); }
+
+        private void ThemeCombo_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (ThemeCombo == null) return;
+            _isDark = ThemeCombo.SelectedIndex == 1;
+            ApplyTheme(_isDark);
+        }
+
+        private void ApplyTheme(bool dark)
+        {
+            var res = this.Resources;
+            if (dark)
+            {
+                res["BgMain"]      = Brush("#1E1E1C"); res["BgSurface"]   = Brush("#252523");
+                res["BgCard"]      = Brush("#2C2C2A"); res["BorderColor"] = Brush("#3A3A38");
+                res["TextPrimary"] = Brush("#F0EFE9"); res["TextMuted"]   = Brush("#888780");
+                res["ActiveBg"]    = Brush("#F0EFE9"); res["ActiveFg"]    = Brush("#1E1E1C");
+                ThemeIcon.Text = "\uE706"; ThemeLabel.Text = "Light mode";
+            }
+            else
+            {
+                res["BgMain"]      = Brush("#F5F4F0"); res["BgSurface"]   = Brush("#ECEAE4");
+                res["BgCard"]      = Brush("#FFFFFF"); res["BorderColor"] = Brush("#D3D1C7");
+                res["TextPrimary"] = Brush("#2C2C2A"); res["TextMuted"]   = Brush("#888780");
+                res["ActiveBg"]    = Brush("#2C2C2A"); res["ActiveFg"]    = Brush("#F5F4F0");
+                ThemeIcon.Text = "\uE708"; ThemeLabel.Text = "Dark mode";
+            }
+            if (ThemeCombo != null) ThemeCombo.SelectedIndex = dark ? 1 : 0;
+        }
+
+        private System.Windows.Media.SolidColorBrush Brush(string hex) =>
+            new((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
+
+        // ── Window controls ──────────────────────────────────────────────────
+        private void Fullscreen_Click(object sender, RoutedEventArgs e) =>
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+        private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+        private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != System.Windows.Input.Key.Enter) return;
+            if (PageEncrypt.Visibility == Visibility.Visible) LockButton_Click(sender, e);
+            else if (PageDecrypt.Visibility == Visibility.Visible) UnlockButton_Click(sender, e);
+        }
+    }
+}
