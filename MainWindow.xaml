@@ -244,7 +244,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- SIDEBAR -->
+        <!-- ══ SIDEBAR ══════════════════════════════════════════════════════ -->
         <Border Grid.Column="0" Background="{DynamicResource BgSurface}"
                 BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,1,0">
             <Grid>
@@ -258,7 +258,8 @@
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="16,16,16,20">
                     <Border Width="28" Height="28" CornerRadius="7"
                             Background="{DynamicResource BgMain}"
-                            BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" Margin="0,0,9,0">
+                            BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                            Margin="0,0,9,0">
                         <TextBlock Text="B" FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="14"
                                    Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -270,12 +271,12 @@
                 <!-- Nav items -->
                 <StackPanel Grid.Row="1" Margin="10,0">
                     <TextBlock Text="MAIN" Style="{StaticResource SectionLabel}" Margin="8,0,0,4"/>
-                    <RadioButton Content="Encrypt"  Style="{StaticResource NavBtn}" IsChecked="True" Click="Nav_Encrypt"/>
-                    <RadioButton Content="Decrypt"  Style="{StaticResource NavBtn}" Click="Nav_Decrypt"/>
-                    <RadioButton Content="History"  Style="{StaticResource NavBtn}" Click="Nav_History"/>
+                    <RadioButton x:Name="NavEncrypt"  Content="Encrypt"  Style="{StaticResource NavBtn}" IsChecked="True" Click="Nav_Encrypt"/>
+                    <RadioButton x:Name="NavDecrypt"  Content="Decrypt"  Style="{StaticResource NavBtn}" Click="Nav_Decrypt"/>
+                    <RadioButton x:Name="NavHistory"  Content="History"  Style="{StaticResource NavBtn}" Click="Nav_History"/>
                     <TextBlock Text="APP" Style="{StaticResource SectionLabel}" Margin="8,16,0,4"/>
-                    <RadioButton Content="Settings" Style="{StaticResource NavBtn}" Click="Nav_Settings"/>
-                    <RadioButton Content="About"    Style="{StaticResource NavBtn}" Click="Nav_About"/>
+                    <RadioButton x:Name="NavSettings" Content="Settings" Style="{StaticResource NavBtn}" Click="Nav_Settings"/>
+                    <RadioButton x:Name="NavAbout"    Content="About"    Style="{StaticResource NavBtn}" Click="Nav_About"/>
                 </StackPanel>
 
                 <!-- Theme toggle -->
@@ -293,7 +294,7 @@
             </Grid>
         </Border>
 
-        <!-- MAIN CONTENT -->
+        <!-- ══ MAIN CONTENT ══════════════════════════════════════════════════ -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="44"/>
@@ -328,7 +329,8 @@
 
                     <!-- ══ ENCRYPT PAGE ══════════════════════════════════════ -->
                     <StackPanel x:Name="PageEncrypt" Margin="64,40">
-                        <Border Width="44" Height="44" CornerRadius="11" HorizontalAlignment="Center" Margin="0,0,0,14"
+                        <Border Width="44" Height="44" CornerRadius="11" HorizontalAlignment="Center"
+                                Margin="0,0,0,14"
                                 Background="{DynamicResource BgCard}"
                                 BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                             <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="18"
@@ -344,8 +346,9 @@
                                    FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,28"/>
 
-                        <TextBlock Text="Target directory" FontFamily="Segoe UI" FontSize="12" FontWeight="Medium"
-                                   Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Target directory" FontFamily="Segoe UI" FontSize="12"
+                                   FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
+                                   Margin="0,0,0,6"/>
                         <Border CornerRadius="8" BorderThickness="1" Margin="0,0,0,16"
                                 Background="{DynamicResource BgCard}">
                             <Border.Style>
@@ -370,7 +373,8 @@
                         </Border>
 
                         <Button x:Name="LockButton" Content="Encrypt folder"
-                                Style="{StaticResource RunBtn}" Click="LockButton_Click" Margin="0,0,0,20"/>
+                                Style="{StaticResource RunBtn}" Click="LockButton_Click"
+                                Margin="0,0,0,20"/>
 
                         <!-- Key output (hidden until success) -->
                         <Border x:Name="KeyOutputPanel" Visibility="Collapsed"
@@ -384,7 +388,8 @@
                                                VerticalAlignment="Center"/>
                                     <TextBlock Text="  — store this somewhere safe, it cannot be recovered"
                                                FontFamily="Segoe UI" FontSize="11"
-                                               Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                                               Foreground="{DynamicResource TextMuted}"
+                                               VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <Border CornerRadius="6" BorderThickness="1" Margin="0,0,0,10"
                                         Background="{DynamicResource BgSurface}"
@@ -397,7 +402,36 @@
                             </StackPanel>
                         </Border>
 
-                        <Separator Background="{DynamicResource BorderColor}" Height="1" Margin="0,0,0,18" BorderThickness="0"/>
+                        <!-- Generate standalone key -->
+                        <TextBlock Text="Or generate a standalone key" FontFamily="Segoe UI" FontSize="12"
+                                   FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
+                                   Margin="0,0,0,6"/>
+                        <Button Content="Generate key" Style="{StaticResource GhostBtn}"
+                                HorizontalAlignment="Left" Margin="0,0,0,12"
+                                Click="GenerateKey_Click"/>
+
+                        <Border x:Name="GeneratedKeyPanel" Visibility="Collapsed"
+                                CornerRadius="8" BorderThickness="1" Margin="0,0,0,20"
+                                Background="{DynamicResource BgCard}"
+                                BorderBrush="{DynamicResource BorderColor}">
+                            <StackPanel Margin="16,12">
+                                <TextBlock Text="Generated key  — store this somewhere safe"
+                                           FontFamily="Segoe UI" FontSize="12"
+                                           FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
+                                           Margin="0,0,0,8"/>
+                                <Border CornerRadius="6" BorderThickness="1" Margin="0,0,0,10"
+                                        Background="{DynamicResource BgSurface}"
+                                        BorderBrush="{DynamicResource BorderColor}">
+                                    <TextBox x:Name="GeneratedKeyBox" Style="{StaticResource MonoInput}"
+                                             IsReadOnly="True" TextWrapping="Wrap" Height="48"/>
+                                </Border>
+                                <Button Content="Copy key to clipboard" Style="{StaticResource GhostBtn}"
+                                        HorizontalAlignment="Left" Click="CopyGeneratedKey_Click"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Separator Background="{DynamicResource BorderColor}" Height="1"
+                                   Margin="0,0,0,18" BorderThickness="0"/>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Ellipse Width="7" Height="7" Fill="{DynamicResource GreenDot}"
@@ -409,7 +443,8 @@
                                                 <BeginStoryboard>
                                                     <Storyboard RepeatBehavior="Forever">
                                                         <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         From="1" To="0.3" Duration="0:0:2" AutoReverse="True"/>
+                                                                         From="1" To="0.3" Duration="0:0:2"
+                                                                         AutoReverse="True"/>
                                                     </Storyboard>
                                                 </BeginStoryboard>
                                             </EventTrigger>
@@ -425,7 +460,8 @@
 
                     <!-- ══ DECRYPT PAGE ══════════════════════════════════════ -->
                     <StackPanel x:Name="PageDecrypt" Visibility="Collapsed" Margin="64,40">
-                        <Border Width="44" Height="44" CornerRadius="11" HorizontalAlignment="Center" Margin="0,0,0,14"
+                        <Border Width="44" Height="44" CornerRadius="11" HorizontalAlignment="Center"
+                                Margin="0,0,0,14"
                                 Background="{DynamicResource BgCard}"
                                 BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                             <TextBlock Text="&#xE785;" FontFamily="Segoe MDL2 Assets" FontSize="18"
@@ -441,8 +477,9 @@
                                    FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,28"/>
 
-                        <TextBlock Text="Target directory" FontFamily="Segoe UI" FontSize="12" FontWeight="Medium"
-                                   Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Target directory" FontFamily="Segoe UI" FontSize="12"
+                                   FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
+                                   Margin="0,0,0,6"/>
                         <Border CornerRadius="8" BorderThickness="1" Margin="0,0,0,16"
                                 Background="{DynamicResource BgCard}">
                             <Border.Style>
@@ -466,8 +503,9 @@
                             </Grid>
                         </Border>
 
-                        <TextBlock Text="Decryption key" FontFamily="Segoe UI" FontSize="12" FontWeight="Medium"
-                                   Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
+                        <TextBlock Text="Decryption key" FontFamily="Segoe UI" FontSize="12"
+                                   FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
+                                   Margin="0,0,0,6"/>
                         <Border CornerRadius="8" BorderThickness="1" Margin="0,0,0,6"
                                 Background="{DynamicResource BgCard}">
                             <Border.Style>
@@ -488,9 +526,11 @@
                                 HorizontalAlignment="Left" Margin="0,0,0,20" Click="PasteKey_Click"/>
 
                         <Button x:Name="UnlockButton" Content="Decrypt folder"
-                                Style="{StaticResource RunBtn}" Click="UnlockButton_Click" Margin="0,0,0,20"/>
+                                Style="{StaticResource RunBtn}" Click="UnlockButton_Click"
+                                Margin="0,0,0,20"/>
 
-                        <Separator Background="{DynamicResource BorderColor}" Height="1" Margin="0,0,0,18" BorderThickness="0"/>
+                        <Separator Background="{DynamicResource BorderColor}" Height="1"
+                                   Margin="0,0,0,18" BorderThickness="0"/>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Ellipse Width="7" Height="7" Fill="{DynamicResource AmberDot}"
@@ -502,7 +542,8 @@
                                                 <BeginStoryboard>
                                                     <Storyboard RepeatBehavior="Forever">
                                                         <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         From="1" To="0.3" Duration="0:0:2" AutoReverse="True"/>
+                                                                         From="1" To="0.3" Duration="0:0:2"
+                                                                         AutoReverse="True"/>
                                                     </Storyboard>
                                                 </BeginStoryboard>
                                             </EventTrigger>
@@ -517,24 +558,135 @@
                     </StackPanel>
 
                     <!-- ══ HISTORY PAGE ══════════════════════════════════════ -->
-                    <StackPanel x:Name="PageHistory" Visibility="Collapsed"
-                                HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,80">
-                        <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="32"
-                                   Foreground="{DynamicResource TextMuted}"
-                                   HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                        <TextBlock Text="No history yet"
-                                   FontFamily="Segoe UI" FontSize="14" Foreground="{DynamicResource TextMuted}"
-                                   HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                        <TextBlock Text="Run an encryption or decryption to get started"
-                                   FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
-                                   HorizontalAlignment="Center"/>
-                    </StackPanel>
+                    <Grid x:Name="PageHistory" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <Grid Grid.Row="0" Margin="64,40,64,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="History"
+                                           FontFamily="Segoe UI" FontSize="18" FontWeight="Medium"
+                                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
+                                <TextBlock Text="Previously encrypted folders and generated keys."
+                                           FontFamily="Segoe UI" FontSize="13"
+                                           Foreground="{DynamicResource TextMuted}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="Clear history"
+                                    Style="{StaticResource GhostBtn}" VerticalAlignment="Center"
+                                    Click="ClearHistory_Click"/>
+                        </Grid>
+
+                        <Separator Grid.Row="1" Background="{DynamicResource BorderColor}"
+                                   Height="1" Margin="64,0,64,0" BorderThickness="0"/>
+
+                        <!-- Empty state -->
+                        <StackPanel x:Name="HistoryEmpty" Grid.Row="2"
+                                    HorizontalAlignment="Center" Margin="0,60,0,0">
+                            <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="32"
+                                       Foreground="{DynamicResource TextMuted}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                            <TextBlock Text="No history yet"
+                                       FontFamily="Segoe UI" FontSize="14"
+                                       Foreground="{DynamicResource TextMuted}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                            <TextBlock Text="Run an encryption or decryption to get started"
+                                       FontFamily="Segoe UI" FontSize="13"
+                                       Foreground="{DynamicResource TextMuted}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- History list -->
+                        <ItemsControl x:Name="HistoryList" Grid.Row="2" Visibility="Collapsed"
+                                      Margin="64,24,64,40">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="8" BorderThickness="1" Margin="0,0,0,10"
+                                            Background="{DynamicResource BgCard}"
+                                            BorderBrush="{DynamicResource BorderColor}">
+                                        <Grid Margin="16,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Icon -->
+                                            <Border Grid.Column="0"
+                                                    Width="36" Height="36" CornerRadius="9"
+                                                    Background="{DynamicResource BgSurface}"
+                                                    BorderBrush="{DynamicResource BorderColor}"
+                                                    BorderThickness="1" Margin="0,0,14,0"
+                                                    VerticalAlignment="Top">
+                                                <TextBlock Text="&#xE72E;"
+                                                           FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                                           Foreground="{DynamicResource TextMuted}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+
+                                            <!-- Info -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                    <TextBlock Text="{Binding Type}"
+                                                               FontFamily="Segoe UI" FontSize="13"
+                                                               FontWeight="Medium"
+                                                               Foreground="{DynamicResource TextPrimary}"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,8,0"/>
+                                                    <Border CornerRadius="4" Padding="7,2"
+                                                            Background="{DynamicResource BgSurface}"
+                                                            BorderBrush="{DynamicResource BorderColor}"
+                                                            BorderThickness="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Algorithm}"
+                                                                   FontFamily="Cascadia Mono, Consolas, monospace"
+                                                                   FontSize="10"
+                                                                   Foreground="{DynamicResource TextMuted}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Path}"
+                                                           FontFamily="Segoe UI" FontSize="12"
+                                                           Foreground="{DynamicResource TextMuted}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="0,0,0,3"/>
+                                                <TextBlock Text="{Binding Date}"
+                                                           FontFamily="Segoe UI" FontSize="11"
+                                                           Foreground="{DynamicResource TextMuted}"/>
+                                            </StackPanel>
+
+                                            <!-- Actions -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                                        VerticalAlignment="Center" Margin="12,0,0,0">
+                                                <Button Content="Copy key"
+                                                        Style="{StaticResource GhostBtn}"
+                                                        Tag="{Binding Key}" Margin="0,0,6,0"
+                                                        Click="CopyHistoryKey_Click"/>
+                                                <Button Content="Use key"
+                                                        Style="{StaticResource GhostBtn}"
+                                                        Tag="{Binding Key}"
+                                                        Click="UseHistoryKey_Click"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                    </Grid>
 
                     <!-- ══ SETTINGS PAGE ═════════════════════════════════════ -->
                     <StackPanel x:Name="PageSettings" Visibility="Collapsed" Margin="40,32">
                         <TextBlock Text="APPEARANCE" Style="{StaticResource SectionLabel}"/>
                         <Border CornerRadius="8" BorderThickness="1" Margin="0,0,0,24"
-                                Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource BorderColor}">
+                                Background="{DynamicResource BgCard}"
+                                BorderBrush="{DynamicResource BorderColor}">
                             <Grid Margin="16,14">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -560,7 +712,8 @@
                     <!-- ══ ABOUT PAGE ════════════════════════════════════════ -->
                     <StackPanel x:Name="PageAbout" Visibility="Collapsed"
                                 HorizontalAlignment="Center" Margin="0,60">
-                        <Border Width="44" Height="44" CornerRadius="11" HorizontalAlignment="Center" Margin="0,0,0,14"
+                        <Border Width="44" Height="44" CornerRadius="11" HorizontalAlignment="Center"
+                                Margin="0,0,0,14"
                                 Background="{DynamicResource BgCard}"
                                 BorderBrush="{DynamicResource BorderColor}" BorderThickness="1">
                             <TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="18"
@@ -571,13 +724,16 @@
                                    Foreground="{DynamicResource TextPrimary}"
                                    HorizontalAlignment="Center" Margin="0,0,0,4"/>
                         <TextBlock Text="Version 2.0.0  ·  Built with WPF + .NET 8 + Rust"
-                                   FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
+                                   FontFamily="Segoe UI" FontSize="13"
+                                   Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBlock Text="Folder encryption using ChaCha20-Poly1305."
-                                   FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
+                                   FontFamily="Segoe UI" FontSize="13"
+                                   Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,4"/>
                         <TextBlock Text="Local, offline. No telemetry, no cloud."
-                                   FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
+                                   FontFamily="Segoe UI" FontSize="13"
+                                   Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
 

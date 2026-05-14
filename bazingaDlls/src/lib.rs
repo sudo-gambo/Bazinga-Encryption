@@ -4,6 +4,7 @@ use walkdir::WalkDir;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
+
 const NONCE_SIZE: usize = 12;
 
 // ── Key helpers ─────────────────────────────────────────────────────────────
@@ -146,4 +147,22 @@ pub extern "C" fn decrypt_folder(
         Ok(_) => 0,
         Err(_) => 3,
     }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn generate_key(
+    key_out_buf: *mut c_char,
+    buf_len: i32,
+) -> i32 {
+    if key_out_buf.is_null() { return 1; }
+
+    let key = generate_base64_key();
+    let key_bytes = key.as_bytes();
+    if key_bytes.len() + 1 > buf_len as usize { return 2; }
+
+    unsafe {
+        std::ptr::copy_nonoverlapping(key_bytes.as_ptr() as *const c_char, key_out_buf, key_bytes.len());
+        *key_out_buf.add(key_bytes.len()) = 0;
+    }
+    0
 }
