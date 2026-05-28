@@ -767,8 +767,13 @@
                                                         Click="CopyHistoryKey_Click"/>
                                                 <Button Content="Use key"
                                                         Style="{StaticResource GhostBtn}"
-                                                        Tag="{Binding Key}"
+                                                        Tag="{Binding Key}" Margin="0,0,6,0"
                                                         Click="UseHistoryKey_Click"/>
+                                                <Button Content="&#xE74D;"
+                                                        Style="{StaticResource IconBtn}"
+                                                        Tag="{Binding Id}"
+                                                        ToolTip="Remove this entry"
+                                                        Click="RemoveHistoryEntry_Click"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>

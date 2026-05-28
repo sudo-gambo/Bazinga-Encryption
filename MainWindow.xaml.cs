@@ -21,6 +21,12 @@ namespace encryptionTool
         public string Date      { get; set; } = "";
     }
 
+    // ── Settings model ───────────────────────────────────────────────────────
+    public class AppSettings
+    {
+        public bool IsDark { get; set; } = false;
+    }
+
     public partial class MainWindow : Window
     {
         // ── DLL imports ──────────────────────────────────────────────────────
@@ -48,10 +54,41 @@ namespace encryptionTool
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "BazingaVault", "history.json");
 
+        private static readonly string SettingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "BazingaVault", "settings.json");
+
         public MainWindow()
         {
             InitializeComponent();
+            LoadSettings();
             LoadHistory();
+        }
+
+        // ── Settings persistence ──────────────────────────────────────────────
+        private void LoadSettings()
+        {
+            try
+            {
+                if (!File.Exists(SettingsPath)) return;
+                var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath));
+                if (s == null) return;
+                _isDark = s.IsDark;
+                ApplyTheme(_isDark);
+            }
+            catch { }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
+                File.WriteAllText(SettingsPath, JsonSerializer.Serialize(
+                    new AppSettings { IsDark = _isDark },
+                    new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch { }
         }
 
         // ── History persistence ───────────────────────────────────────────────
@@ -175,7 +212,6 @@ namespace encryptionTool
                 }
                 else
                 {
-                    // Single file — generate a key first, then encrypt with it
                     var keyBuf = new StringBuilder(512);
                     result = generate_key(keyBuf, keyBuf.Capacity);
                     if (result != 0) { EncryptStatus.Text = $"KEYGEN_ERR: {result}"; return; }
@@ -210,8 +246,8 @@ namespace encryptionTool
             string path = DecryptPathInput.Text.Trim();
             string key  = DecryptKeyInput.Text.Trim();
 
-            if (string.IsNullOrEmpty(path))  { DecryptStatus.Text = "NO_PATH";         return; }
-            if (string.IsNullOrEmpty(key))   { DecryptStatus.Text = "NO_KEY_PROVIDED"; return; }
+            if (string.IsNullOrEmpty(path)) { DecryptStatus.Text = "NO_PATH";         return; }
+            if (string.IsNullOrEmpty(key))  { DecryptStatus.Text = "NO_KEY_PROVIDED"; return; }
 
             bool isFolder = Directory.Exists(path);
             bool isFile   = File.Exists(path);
@@ -227,9 +263,7 @@ namespace encryptionTool
                     ? decrypt_folder(path, key)
                     : decrypt_file(path, key);
 
-                DecryptStatus.Text = result == 0
-                    ? "SUCCESS"
-                    : $"ERR_CODE: {result}";
+                DecryptStatus.Text = result == 0 ? "SUCCESS" : $"ERR_CODE: {result}";
 
                 if (result == 0)
                     AddHistoryEntry(new HistoryEntry
@@ -299,6 +333,16 @@ namespace encryptionTool
             if (sender is Button btn && btn.Tag is string key)
                 Clipboard.SetText(key);
         }
+        // ── Remove single history entry ───────────────────────────────────────────
+        private void RemoveHistoryEntry_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string id)
+            {
+                _history.RemoveAll(h => h.Id == id);
+                SaveHistory();
+                RefreshHistoryUI();
+            }
+        }
 
         // ── Use key from history (paste into decrypt page) ────────────────────
         private void UseHistoryKey_Click(object sender, RoutedEventArgs e)
@@ -341,13 +385,19 @@ namespace encryptionTool
         private void Nav_About(object sender, RoutedEventArgs e)    { ShowPage(PageAbout);    TabAbout.IsChecked    = true; }
 
         // ── Theme ─────────────────────────────────────────────────────────────
-        private void ThemeToggle_Click(object sender, RoutedEventArgs e) { _isDark = !_isDark; ApplyTheme(_isDark); }
+        private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _isDark = !_isDark;
+            ApplyTheme(_isDark);
+            SaveSettings();
+        }
 
         private void ThemeCombo_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (ThemeCombo == null) return;
             _isDark = ThemeCombo.SelectedIndex == 1;
             ApplyTheme(_isDark);
+            SaveSettings();
         }
 
         private void ApplyTheme(bool dark)
