@@ -4,6 +4,7 @@
         Title="BazingaVault" Height="620" Width="940"
         MinHeight="500" MinWidth="740"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
         ResizeMode="CanResize"
         KeyDown="Window_KeyDown">
 
@@ -331,9 +332,10 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Tab bar -->
+            <!-- Tab bar — also acts as the drag handle / title bar -->
             <Border Grid.Row="0" Background="{DynamicResource BgMain}"
-                    BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1">
+                    BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1"
+                    MouseLeftButtonDown="DragBar_MouseDown">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>

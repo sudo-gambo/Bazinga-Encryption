@@ -333,7 +333,8 @@ namespace encryptionTool
             if (sender is Button btn && btn.Tag is string key)
                 Clipboard.SetText(key);
         }
-        // ── Remove single history entry ───────────────────────────────────────────
+
+        // ── Remove single history entry ───────────────────────────────────────
         private void RemoveHistoryEntry_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is string id)
@@ -378,11 +379,11 @@ namespace encryptionTool
             page.Visibility         = Visibility.Visible;
         }
 
-        private void Nav_Encrypt(object sender, RoutedEventArgs e)  { ShowPage(PageEncrypt);  TabEncrypt.IsChecked  = true; }
-        private void Nav_Decrypt(object sender, RoutedEventArgs e)  { ShowPage(PageDecrypt);  TabDecrypt.IsChecked  = true; }
-        private void Nav_History(object sender, RoutedEventArgs e)  { ShowPage(PageHistory);  TabHistory.IsChecked  = true; }
-        private void Nav_Settings(object sender, RoutedEventArgs e) { ShowPage(PageSettings); TabSettings.IsChecked = true; }
-        private void Nav_About(object sender, RoutedEventArgs e)    { ShowPage(PageAbout);    TabAbout.IsChecked    = true; }
+        private void Nav_Encrypt(object sender, RoutedEventArgs e)  { ShowPage(PageEncrypt);  TabEncrypt.IsChecked  = true; NavEncrypt.IsChecked  = true; }
+        private void Nav_Decrypt(object sender, RoutedEventArgs e)  { ShowPage(PageDecrypt);  TabDecrypt.IsChecked  = true; NavDecrypt.IsChecked  = true; }
+        private void Nav_History(object sender, RoutedEventArgs e)  { ShowPage(PageHistory);  TabHistory.IsChecked  = true; NavHistory.IsChecked  = true; }
+        private void Nav_Settings(object sender, RoutedEventArgs e) { ShowPage(PageSettings); TabSettings.IsChecked = true; NavSettings.IsChecked = true; }
+        private void Nav_About(object sender, RoutedEventArgs e)    { ShowPage(PageAbout);    TabAbout.IsChecked    = true; NavAbout.IsChecked    = true; }
 
         // ── Theme ─────────────────────────────────────────────────────────────
         private void ThemeToggle_Click(object sender, RoutedEventArgs e)
@@ -426,6 +427,14 @@ namespace encryptionTool
             new((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
 
         // ── Window controls ───────────────────────────────────────────────────
+        private void DragBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+                WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            else if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                DragMove();
+        }
+
         private void Fullscreen_Click(object sender, RoutedEventArgs e) =>
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
