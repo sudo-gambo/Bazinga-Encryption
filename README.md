@@ -1,4 +1,4 @@
-# BazingaVault
+# RustCryption
 
 A lightweight encryption tool built with **WPF (.NET 8)** and a **Rust** backend, using the ChaCha20-Poly1305 authenticated encryption algorithm. Fully local and offline — no telemetry, no cloud, no accounts.
 
@@ -90,7 +90,7 @@ The nonce is randomly generated per file. The 16-byte auth tag is appended by th
 - Files that can't be read or written are silently skipped — the rest of the operation continues
 - Decryption with a wrong key skips files it can't authenticate — it will not corrupt them further
 - Encryption is **in-place** — back up anything critical before encrypting
-- Settings (theme) and history are stored in `%AppData%\BazingaVault\`
+- Settings (theme) and history are stored in `%AppData%\RustCryption\`
 
 ---
 
@@ -98,5 +98,5 @@ The nonce is randomly generated per file. The 16-byte auth tag is appended by th
 
 | File | Contents |
 |---|---|
-| `%AppData%\BazingaVault\history.json` | Operation history with keys and paths |
-| `%AppData%\BazingaVault\settings.json` | UI preferences (theme) |
+| `%AppData%\RustCryption\history.json` | Operation history with keys and paths |
+| `%AppData%\RustCryption\settings.json` | UI preferences (theme) |
