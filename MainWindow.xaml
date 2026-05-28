@@ -157,27 +157,57 @@
 
         <Style x:Key="MonoInput" TargetType="TextBox" BasedOn="{StaticResource CleanInput}">
             <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace"/>
-            <Setter Property="FontSize"   Value="11"/>
+            <Setter Property="FontSize"   Value="13"/>
         </Style>
 
-        <Style x:Key="BrowseBtn" TargetType="Button">
+        <!-- Split browse button — left half (folder) -->
+        <Style x:Key="BrowseBtnLeft" TargetType="Button">
             <Setter Property="FontFamily"      Value="Segoe UI"/>
-            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="FontSize"        Value="12"/>
             <Setter Property="Foreground"      Value="{DynamicResource TextMuted}"/>
             <Setter Property="Background"      Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor"          Value="Hand"/>
-            <Setter Property="Padding"         Value="14,0"/>
+            <Setter Property="Padding"         Value="12,0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="brd" Background="Transparent"
                                 BorderBrush="{DynamicResource BorderColor}"
-                                BorderThickness="1,0,0,0" Padding="14,0">
+                                BorderThickness="1,0,0,0" Padding="12,0">
                             <ContentPresenter VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="brd" Property="Background" Value="{DynamicResource BgSurface}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Split browse button — right half (file) -->
+        <Style x:Key="BrowseBtnRight" TargetType="Button">
+            <Setter Property="FontFamily"      Value="Segoe UI"/>
+            <Setter Property="FontSize"        Value="12"/>
+            <Setter Property="Foreground"      Value="{DynamicResource TextMuted}"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Padding"         Value="12,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="brd" Background="Transparent"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1,0,0,0" CornerRadius="0,8,8,0" Padding="12,0">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="brd" Property="Background" Value="{DynamicResource BgSurface}"/>
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -338,15 +368,16 @@
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
-                        <TextBlock Text="Encrypt a folder"
+                        <TextBlock Text="Encrypt a folder or file"
                                    FontFamily="Segoe UI" FontSize="18" FontWeight="Medium"
                                    Foreground="{DynamicResource TextPrimary}"
                                    HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                        <TextBlock Text="Select a directory. A unique key will be generated — keep it safe."
+                        <TextBlock Text="Select a folder or single file. A unique key will be generated — keep it safe."
                                    FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,28"/>
 
-                        <TextBlock Text="Target directory" FontFamily="Segoe UI" FontSize="12"
+                        <!-- Path input with split browse -->
+                        <TextBlock Text="Target path" FontFamily="Segoe UI" FontSize="12"
                                    FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
                                    Margin="0,0,0,6"/>
                         <Border CornerRadius="8" BorderThickness="1" Margin="0,0,0,16"
@@ -365,26 +396,51 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="EncryptPathInput" Grid.Column="0" Style="{StaticResource CleanInput}"/>
-                                <Button Grid.Column="1" Content="Browse" Height="38"
-                                        Click="BrowseEncrypt_Click" Style="{StaticResource BrowseBtn}"/>
+                                <TextBox x:Name="EncryptPathInput" Grid.Column="0"
+                                         Style="{StaticResource CleanInput}"/>
+                                <!-- Folder browse -->
+                                <Button Grid.Column="1" Height="38"
+                                        Style="{StaticResource BrowseBtnLeft}"
+                                        Click="BrowseEncryptFolder_Click"
+                                        ToolTip="Browse for a folder">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" Margin="0,0,5,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="Folder" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <!-- File browse -->
+                                <Button Grid.Column="2" Height="38"
+                                        Style="{StaticResource BrowseBtnRight}"
+                                        Click="BrowseEncryptFile_Click"
+                                        ToolTip="Browse for a single file">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" Margin="0,0,5,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="File" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
                         </Border>
 
-                        <Button x:Name="LockButton" Content="Encrypt folder"
+                        <Button x:Name="LockButton" Content="Encrypt"
                                 Style="{StaticResource RunBtn}" Click="LockButton_Click"
                                 Margin="0,0,0,20"/>
 
-                        <!-- Key output (hidden until success) -->
+                        <!-- Key output -->
                         <Border x:Name="KeyOutputPanel" Visibility="Collapsed"
                                 CornerRadius="8" BorderThickness="1" Margin="0,0,0,20"
                                 Background="{DynamicResource BgCard}"
                                 BorderBrush="{DynamicResource BorderColor}">
                             <StackPanel Margin="16,12">
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock Text="Your decryption key" FontFamily="Segoe UI" FontSize="12"
-                                               FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
+                                    <TextBlock Text="Your decryption key"
+                                               FontFamily="Segoe UI" FontSize="12" FontWeight="Medium"
+                                               Foreground="{DynamicResource TextMuted}"
                                                VerticalAlignment="Center"/>
                                     <TextBlock Text="  — store this somewhere safe, it cannot be recovered"
                                                FontFamily="Segoe UI" FontSize="11"
@@ -395,7 +451,8 @@
                                         Background="{DynamicResource BgSurface}"
                                         BorderBrush="{DynamicResource BorderColor}">
                                     <TextBox x:Name="KeyOutputBox" Style="{StaticResource MonoInput}"
-                                             IsReadOnly="True" TextWrapping="Wrap" Height="48"/>
+                                            IsReadOnly="True" TextWrapping="Wrap"
+                                            Padding="14,12" MinHeight="44"/>
                                 </Border>
                                 <Button Content="Copy key to clipboard" Style="{StaticResource GhostBtn}"
                                         HorizontalAlignment="Left" Click="CopyKey_Click"/>
@@ -416,14 +473,15 @@
                                 BorderBrush="{DynamicResource BorderColor}">
                             <StackPanel Margin="16,12">
                                 <TextBlock Text="Generated key  — store this somewhere safe"
-                                           FontFamily="Segoe UI" FontSize="12"
-                                           FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
+                                           FontFamily="Segoe UI" FontSize="12" FontWeight="Medium"
+                                           Foreground="{DynamicResource TextMuted}"
                                            Margin="0,0,0,8"/>
                                 <Border CornerRadius="6" BorderThickness="1" Margin="0,0,0,10"
                                         Background="{DynamicResource BgSurface}"
                                         BorderBrush="{DynamicResource BorderColor}">
-                                    <TextBox x:Name="GeneratedKeyBox" Style="{StaticResource MonoInput}"
-                                             IsReadOnly="True" TextWrapping="Wrap" Height="48"/>
+                                <TextBox x:Name="GeneratedKeyBox" Style="{StaticResource MonoInput}"
+                                        IsReadOnly="True" TextWrapping="Wrap"
+                                        Padding="14,12" MinHeight="44"/>
                                 </Border>
                                 <Button Content="Copy key to clipboard" Style="{StaticResource GhostBtn}"
                                         HorizontalAlignment="Left" Click="CopyGeneratedKey_Click"/>
@@ -469,15 +527,16 @@
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
 
-                        <TextBlock Text="Decrypt a folder"
+                        <TextBlock Text="Decrypt a folder or file"
                                    FontFamily="Segoe UI" FontSize="18" FontWeight="Medium"
                                    Foreground="{DynamicResource TextPrimary}"
                                    HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                        <TextBlock Text="Provide the folder and the key that was generated during encryption."
+                        <TextBlock Text="Provide the folder or file and the key that was generated during encryption."
                                    FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,28"/>
 
-                        <TextBlock Text="Target directory" FontFamily="Segoe UI" FontSize="12"
+                        <!-- Path input with split browse -->
+                        <TextBlock Text="Target path" FontFamily="Segoe UI" FontSize="12"
                                    FontWeight="Medium" Foreground="{DynamicResource TextMuted}"
                                    Margin="0,0,0,6"/>
                         <Border CornerRadius="8" BorderThickness="1" Margin="0,0,0,16"
@@ -496,10 +555,32 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="DecryptPathInput" Grid.Column="0" Style="{StaticResource CleanInput}"/>
-                                <Button Grid.Column="1" Content="Browse" Height="38"
-                                        Click="BrowseDecrypt_Click" Style="{StaticResource BrowseBtn}"/>
+                                <TextBox x:Name="DecryptPathInput" Grid.Column="0"
+                                         Style="{StaticResource CleanInput}"/>
+                                <Button Grid.Column="1" Height="38"
+                                        Style="{StaticResource BrowseBtnLeft}"
+                                        Click="BrowseDecryptFolder_Click"
+                                        ToolTip="Browse for a folder">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" Margin="0,0,5,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="Folder" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="2" Height="38"
+                                        Style="{StaticResource BrowseBtnRight}"
+                                        Click="BrowseDecryptFile_Click"
+                                        ToolTip="Browse for a single file">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="12" Margin="0,0,5,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="File" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </Grid>
                         </Border>
 
@@ -525,7 +606,7 @@
                         <Button Content="Paste from clipboard" Style="{StaticResource GhostBtn}"
                                 HorizontalAlignment="Left" Margin="0,0,0,20" Click="PasteKey_Click"/>
 
-                        <Button x:Name="UnlockButton" Content="Decrypt folder"
+                        <Button x:Name="UnlockButton" Content="Decrypt"
                                 Style="{StaticResource RunBtn}" Click="UnlockButton_Click"
                                 Margin="0,0,0,20"/>
 
@@ -565,7 +646,6 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Header -->
                         <Grid Grid.Row="0" Margin="64,40,64,20">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -575,7 +655,7 @@
                                 <TextBlock Text="History"
                                            FontFamily="Segoe UI" FontSize="18" FontWeight="Medium"
                                            Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
-                                <TextBlock Text="Previously encrypted folders and generated keys."
+                                <TextBlock Text="Previously encrypted folders, files, and generated keys."
                                            FontFamily="Segoe UI" FontSize="13"
                                            Foreground="{DynamicResource TextMuted}"/>
                             </StackPanel>
@@ -618,18 +698,35 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Icon -->
+                                            <!-- Icon: folder vs file vs key -->
                                             <Border Grid.Column="0"
                                                     Width="36" Height="36" CornerRadius="9"
                                                     Background="{DynamicResource BgSurface}"
                                                     BorderBrush="{DynamicResource BorderColor}"
                                                     BorderThickness="1" Margin="0,0,14,0"
                                                     VerticalAlignment="Top">
-                                                <TextBlock Text="&#xE72E;"
-                                                           FontFamily="Segoe MDL2 Assets" FontSize="15"
+                                                <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="15"
                                                            Foreground="{DynamicResource TextMuted}"
                                                            HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"/>
+                                                           VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <!-- Default: lock icon (folder ops) -->
+                                                            <Setter Property="Text" Value="&#xE72E;"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Type}" Value="File Encrypted">
+                                                                    <Setter Property="Text" Value="&#xE8A5;"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Type}" Value="File Decrypted">
+                                                                    <Setter Property="Text" Value="&#xE8A5;"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Type}" Value="Key Generated">
+                                                                    <Setter Property="Text" Value="&#xE8D7;"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </Border>
 
                                             <!-- Info -->
@@ -678,7 +775,6 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-
                     </Grid>
 
                     <!-- ══ SETTINGS PAGE ═════════════════════════════════════ -->
@@ -727,7 +823,7 @@
                                    FontFamily="Segoe UI" FontSize="13"
                                    Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBlock Text="Folder encryption using ChaCha20-Poly1305."
+                        <TextBlock Text="Folder and file encryption using ChaCha20-Poly1305."
                                    FontFamily="Segoe UI" FontSize="13"
                                    Foreground="{DynamicResource TextMuted}"
                                    HorizontalAlignment="Center" Margin="0,0,0,4"/>

@@ -14,7 +14,7 @@ namespace encryptionTool
     public class HistoryEntry
     {
         public string Id        { get; set; } = Guid.NewGuid().ToString();
-        public string Type      { get; set; } = "";   // "Encrypted" | "Key Generated"
+        public string Type      { get; set; } = "";   // "Folder Encrypted" | "Folder Decrypted" | "File Encrypted" | "File Decrypted" | "Key Generated"
         public string Path      { get; set; } = "";
         public string Algorithm { get; set; } = "ChaCha20-Poly1305";
         public string Key       { get; set; } = "";
@@ -29,6 +29,12 @@ namespace encryptionTool
 
         [DllImport("bazingaDlls.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         private static extern int decrypt_folder(string folder, string base64Key);
+
+        [DllImport("bazingaDlls.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern int encrypt_file(string path, string base64Key);
+
+        [DllImport("bazingaDlls.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        private static extern int decrypt_file(string path, string base64Key);
 
         [DllImport("bazingaDlls.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         private static extern int generate_key(StringBuilder keyOut, int bufLen);
@@ -48,7 +54,7 @@ namespace encryptionTool
             LoadHistory();
         }
 
-        // ── History persistence ──────────────────────────────────────────────
+        // ── History persistence ───────────────────────────────────────────────
         private void LoadHistory()
         {
             try
@@ -74,7 +80,7 @@ namespace encryptionTool
 
         private void AddHistoryEntry(HistoryEntry entry)
         {
-            _history.Insert(0, entry); // newest first
+            _history.Insert(0, entry);
             SaveHistory();
             RefreshHistoryUI();
         }
@@ -87,60 +93,106 @@ namespace encryptionTool
             HistoryList.ItemsSource = _history;
         }
 
-        // ── Browse (encrypt page) ────────────────────────────────────────────
-        private void BrowseEncrypt_Click(object sender, RoutedEventArgs e)
+        // ── Browse helpers ────────────────────────────────────────────────────
+        private string? BrowseFolder(string title)
         {
             var dialog = new OpenFolderDialog
             {
-                Title = "Select Folder to Encrypt",
+                Title = title,
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
             };
-            if (dialog.ShowDialog() == true)
-            {
-                EncryptPathInput.Text = dialog.FolderName;
-                EncryptStatus.Text = "FOLDER_READY";
-            }
+            return dialog.ShowDialog() == true ? dialog.FolderName : null;
         }
 
-        // ── Browse (decrypt page) ────────────────────────────────────────────
-        private void BrowseDecrypt_Click(object sender, RoutedEventArgs e)
+        private string? BrowseFile(string title)
         {
-            var dialog = new OpenFolderDialog
+            var dialog = new OpenFileDialog
             {
-                Title = "Select Folder to Decrypt",
+                Title = title,
                 InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
             };
-            if (dialog.ShowDialog() == true)
-            {
-                DecryptPathInput.Text = dialog.FolderName;
-                DecryptStatus.Text = "FOLDER_READY";
-            }
+            return dialog.ShowDialog() == true ? dialog.FileName : null;
         }
 
-        // ── Encrypt ──────────────────────────────────────────────────────────
+        // ── Browse (encrypt page) ─────────────────────────────────────────────
+        private void BrowseEncryptFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var path = BrowseFolder("Select Folder to Encrypt");
+            if (path == null) return;
+            EncryptPathInput.Text = path;
+            EncryptStatus.Text = "FOLDER_READY";
+        }
+
+        private void BrowseEncryptFile_Click(object sender, RoutedEventArgs e)
+        {
+            var path = BrowseFile("Select File to Encrypt");
+            if (path == null) return;
+            EncryptPathInput.Text = path;
+            EncryptStatus.Text = "FILE_READY";
+        }
+
+        // ── Browse (decrypt page) ─────────────────────────────────────────────
+        private void BrowseDecryptFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var path = BrowseFolder("Select Folder to Decrypt");
+            if (path == null) return;
+            DecryptPathInput.Text = path;
+            DecryptStatus.Text = "FOLDER_READY";
+        }
+
+        private void BrowseDecryptFile_Click(object sender, RoutedEventArgs e)
+        {
+            var path = BrowseFile("Select File to Decrypt");
+            if (path == null) return;
+            DecryptPathInput.Text = path;
+            DecryptStatus.Text = "FILE_READY";
+        }
+
+        // ── Encrypt ───────────────────────────────────────────────────────────
         private void LockButton_Click(object sender, RoutedEventArgs e)
         {
-            string path = EncryptPathInput.Text;
-            if (!Directory.Exists(path)) { EncryptStatus.Text = "INVALID_PATH"; return; }
+            string path = EncryptPathInput.Text.Trim();
+            if (string.IsNullOrEmpty(path)) { EncryptStatus.Text = "NO_PATH"; return; }
+
+            bool isFolder = Directory.Exists(path);
+            bool isFile   = File.Exists(path);
+
+            if (!isFolder && !isFile) { EncryptStatus.Text = "INVALID_PATH"; return; }
 
             EncryptStatus.Text = "ENCRYPTING...";
             LockButton.IsEnabled = false;
 
             try
             {
-                var keyBuf = new StringBuilder(512);
-                int result = encrypt_folder(path, keyBuf, keyBuf.Capacity);
+                string key;
+                int result;
+
+                if (isFolder)
+                {
+                    var keyBuf = new StringBuilder(512);
+                    result = encrypt_folder(path, keyBuf, keyBuf.Capacity);
+                    key = keyBuf.ToString();
+                }
+                else
+                {
+                    // Single file — generate a key first, then encrypt with it
+                    var keyBuf = new StringBuilder(512);
+                    result = generate_key(keyBuf, keyBuf.Capacity);
+                    if (result != 0) { EncryptStatus.Text = $"KEYGEN_ERR: {result}"; return; }
+                    key = keyBuf.ToString();
+                    result = encrypt_file(path, key);
+                }
 
                 if (result == 0)
                 {
-                    _lastKey = keyBuf.ToString();
+                    _lastKey = key;
                     KeyOutputBox.Text = _lastKey;
                     KeyOutputPanel.Visibility = Visibility.Visible;
                     EncryptStatus.Text = "SUCCESS — save your key!";
 
                     AddHistoryEntry(new HistoryEntry
                     {
-                        Type = "Encrypted",
+                        Type = isFolder ? "Folder Encrypted" : "File Encrypted",
                         Path = path,
                         Key  = _lastKey,
                         Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
@@ -152,28 +204,47 @@ namespace encryptionTool
             finally { LockButton.IsEnabled = true; }
         }
 
-        // ── Decrypt ──────────────────────────────────────────────────────────
+        // ── Decrypt ───────────────────────────────────────────────────────────
         private void UnlockButton_Click(object sender, RoutedEventArgs e)
         {
-            string path = DecryptPathInput.Text;
+            string path = DecryptPathInput.Text.Trim();
             string key  = DecryptKeyInput.Text.Trim();
 
-            if (!Directory.Exists(path))      { DecryptStatus.Text = "INVALID_PATH";    return; }
-            if (string.IsNullOrEmpty(key))     { DecryptStatus.Text = "NO_KEY_PROVIDED"; return; }
+            if (string.IsNullOrEmpty(path))  { DecryptStatus.Text = "NO_PATH";         return; }
+            if (string.IsNullOrEmpty(key))   { DecryptStatus.Text = "NO_KEY_PROVIDED"; return; }
+
+            bool isFolder = Directory.Exists(path);
+            bool isFile   = File.Exists(path);
+
+            if (!isFolder && !isFile) { DecryptStatus.Text = "INVALID_PATH"; return; }
 
             DecryptStatus.Text = "DECRYPTING...";
             UnlockButton.IsEnabled = false;
 
             try
             {
-                int result = decrypt_folder(path, key);
-                DecryptStatus.Text = result == 0 ? "SUCCESS" : $"ERR_CODE: {result}";
+                int result = isFolder
+                    ? decrypt_folder(path, key)
+                    : decrypt_file(path, key);
+
+                DecryptStatus.Text = result == 0
+                    ? "SUCCESS"
+                    : $"ERR_CODE: {result}";
+
+                if (result == 0)
+                    AddHistoryEntry(new HistoryEntry
+                    {
+                        Type = isFolder ? "Folder Decrypted" : "File Decrypted",
+                        Path = path,
+                        Key  = key,
+                        Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
+                    });
             }
             catch (Exception ex) { DecryptStatus.Text = "DLL_CRASH: " + ex.Message; }
             finally { UnlockButton.IsEnabled = true; }
         }
 
-        // ── Generate standalone key ──────────────────────────────────────────
+        // ── Generate standalone key ───────────────────────────────────────────
         private void GenerateKey_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -200,7 +271,7 @@ namespace encryptionTool
             catch (Exception ex) { EncryptStatus.Text = "DLL_CRASH: " + ex.Message; }
         }
 
-        // ── Copy / paste ─────────────────────────────────────────────────────
+        // ── Copy / paste ──────────────────────────────────────────────────────
         private void CopyKey_Click(object sender, RoutedEventArgs e)
         {
             if (!string.IsNullOrEmpty(KeyOutputBox.Text))
@@ -222,14 +293,14 @@ namespace encryptionTool
                 DecryptKeyInput.Text = Clipboard.GetText();
         }
 
-        // ── Copy key from history card ───────────────────────────────────────
+        // ── Copy key from history card ────────────────────────────────────────
         private void CopyHistoryKey_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is string key)
                 Clipboard.SetText(key);
         }
 
-        // ── Use key from history (paste into decrypt page) ───────────────────
+        // ── Use key from history (paste into decrypt page) ────────────────────
         private void UseHistoryKey_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is string key)
@@ -240,7 +311,7 @@ namespace encryptionTool
             }
         }
 
-        // ── Clear history ────────────────────────────────────────────────────
+        // ── Clear history ─────────────────────────────────────────────────────
         private void ClearHistory_Click(object sender, RoutedEventArgs e)
         {
             var confirm = MessageBox.Show(
@@ -252,7 +323,7 @@ namespace encryptionTool
             RefreshHistoryUI();
         }
 
-        // ── Navigation ───────────────────────────────────────────────────────
+        // ── Navigation ────────────────────────────────────────────────────────
         private void ShowPage(UIElement page)
         {
             PageEncrypt.Visibility  = Visibility.Collapsed;
@@ -269,7 +340,7 @@ namespace encryptionTool
         private void Nav_Settings(object sender, RoutedEventArgs e) { ShowPage(PageSettings); TabSettings.IsChecked = true; }
         private void Nav_About(object sender, RoutedEventArgs e)    { ShowPage(PageAbout);    TabAbout.IsChecked    = true; }
 
-        // ── Theme ────────────────────────────────────────────────────────────
+        // ── Theme ─────────────────────────────────────────────────────────────
         private void ThemeToggle_Click(object sender, RoutedEventArgs e) { _isDark = !_isDark; ApplyTheme(_isDark); }
 
         private void ThemeCombo_Changed(object sender, SelectionChangedEventArgs e)
@@ -304,7 +375,7 @@ namespace encryptionTool
         private System.Windows.Media.SolidColorBrush Brush(string hex) =>
             new((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
 
-        // ── Window controls ──────────────────────────────────────────────────
+        // ── Window controls ───────────────────────────────────────────────────
         private void Fullscreen_Click(object sender, RoutedEventArgs e) =>
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
