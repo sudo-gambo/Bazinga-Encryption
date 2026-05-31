@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -52,11 +53,11 @@ namespace encryptionTool
 
         private static readonly string HistoryPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "BazingaVault", "history.json");
+            "RustCryption", "history.json");
 
         private static readonly string SettingsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "BazingaVault", "settings.json");
+            "RustCryption", "settings.json");
 
         public MainWindow()
         {
@@ -186,7 +187,7 @@ namespace encryptionTool
         }
 
         // ── Encrypt ───────────────────────────────────────────────────────────
-        private void LockButton_Click(object sender, RoutedEventArgs e)
+        private async void LockButton_Click(object sender, RoutedEventArgs e)
         {
             string path = EncryptPathInput.Text.Trim();
             if (string.IsNullOrEmpty(path)) { EncryptStatus.Text = "NO_PATH"; return; }
@@ -196,8 +197,10 @@ namespace encryptionTool
 
             if (!isFolder && !isFile) { EncryptStatus.Text = "INVALID_PATH"; return; }
 
+            // Lock UI and show progress
             EncryptStatus.Text = "ENCRYPTING...";
             LockButton.IsEnabled = false;
+            EncryptProgress.Visibility = Visibility.Visible;
 
             try
             {
@@ -207,16 +210,23 @@ namespace encryptionTool
                 if (isFolder)
                 {
                     var keyBuf = new StringBuilder(512);
-                    result = encrypt_folder(path, keyBuf, keyBuf.Capacity);
-                    key = keyBuf.ToString();
+                    (result, key) = await Task.Run(() =>
+                    {
+                        var buf = new StringBuilder(512);
+                        int r = encrypt_folder(path, buf, buf.Capacity);
+                        return (r, buf.ToString());
+                    });
                 }
                 else
                 {
+                    // Generate key on UI thread (fast), encrypt file on background thread
                     var keyBuf = new StringBuilder(512);
-                    result = generate_key(keyBuf, keyBuf.Capacity);
-                    if (result != 0) { EncryptStatus.Text = $"KEYGEN_ERR: {result}"; return; }
+                    int keyResult = generate_key(keyBuf, keyBuf.Capacity);
+                    if (keyResult != 0) { EncryptStatus.Text = $"KEYGEN_ERR: {keyResult}"; return; }
                     key = keyBuf.ToString();
-                    result = encrypt_file(path, key);
+
+                    string capturedKey = key;
+                    result = await Task.Run(() => encrypt_file(path, capturedKey));
                 }
 
                 if (result == 0)
@@ -237,11 +247,15 @@ namespace encryptionTool
                 else { EncryptStatus.Text = $"ERR_CODE: {result}"; }
             }
             catch (Exception ex) { EncryptStatus.Text = "DLL_CRASH: " + ex.Message; }
-            finally { LockButton.IsEnabled = true; }
+            finally
+            {
+                LockButton.IsEnabled = true;
+                EncryptProgress.Visibility = Visibility.Collapsed;
+            }
         }
 
         // ── Decrypt ───────────────────────────────────────────────────────────
-        private void UnlockButton_Click(object sender, RoutedEventArgs e)
+        private async void UnlockButton_Click(object sender, RoutedEventArgs e)
         {
             string path = DecryptPathInput.Text.Trim();
             string key  = DecryptKeyInput.Text.Trim();
@@ -254,14 +268,16 @@ namespace encryptionTool
 
             if (!isFolder && !isFile) { DecryptStatus.Text = "INVALID_PATH"; return; }
 
+            // Lock UI and show progress
             DecryptStatus.Text = "DECRYPTING...";
             UnlockButton.IsEnabled = false;
+            DecryptProgress.Visibility = Visibility.Visible;
 
             try
             {
-                int result = isFolder
+                int result = await Task.Run(() => isFolder
                     ? decrypt_folder(path, key)
-                    : decrypt_file(path, key);
+                    : decrypt_file(path, key));
 
                 DecryptStatus.Text = result == 0 ? "SUCCESS" : $"ERR_CODE: {result}";
 
@@ -275,7 +291,11 @@ namespace encryptionTool
                     });
             }
             catch (Exception ex) { DecryptStatus.Text = "DLL_CRASH: " + ex.Message; }
-            finally { UnlockButton.IsEnabled = true; }
+            finally
+            {
+                UnlockButton.IsEnabled = true;
+                DecryptProgress.Visibility = Visibility.Collapsed;
+            }
         }
 
         // ── Generate standalone key ───────────────────────────────────────────
